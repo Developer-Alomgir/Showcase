@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALOMGIR HOSSEN - FrontEnd Developer (3D Portfolio)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN for 3D background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Lucide Icons (Used for project cards) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* Using Inter Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+        }
+
+        /* 3D Canvas Full screen and fixed position */
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Place below content */
+            opacity: 0.3; /* Subtle background opacity */
+        }
+
+        /* Hero Image Container for layering */
+        .hero-image-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px; /* Increased size for better layering effect */
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Profile wrapper for image and circle */
+        .profile-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 300px; /* Size of the visible circle and image area */
+            height: 300px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            z-index: 10;
+        }
+
+        /* Animated Glowing Circle Background */
+        .profile-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(0, 255, 255, 0.6) 0%, rgba(0, 255, 255, 0) 70%);
+            opacity: 0.5;
+            z-index: -1; /* Behind the image */
+            animation: pulse 3s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.5; }
+            to { transform: scale(1.05); opacity: 0.7; }
+        }
+
+        .profile-wrapper img {
+            /* Image inside the circle, using object-cover to fill the frame */
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            transition: transform 0.5s;
+            filter: drop-shadow(0 0 10px rgba(0,255,255,0.4)); /* Subtle glow for the image */
+        }
+
+        .profile-wrapper img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Text layering */
+        .hero-text-back, .hero-text-front {
+            position: absolute;
+            font-size: 5rem; 
+            font-weight: 900;
+            text-transform: uppercase;
+            white-space: nowrap;
+            letter-spacing: -0.05em; 
+            pointer-events: none; /* Make sure text doesn't block clicks */
+        }
+
+        .hero-text-back {
+            z-index: 5; /* Behind the image */
+            color: rgba(255,255,255,0.05); 
+            text-shadow: 0 0 10px rgba(0,255,255,0.1); 
+            top: 40%;
+            transform: translate(-50%, -50%);
+            left: 50%;
+        }
+
+        .hero-text-front {
+            z-index: 15; /* In front of the image */
+            color: rgba(0,255,255,0.2); 
+            text-shadow: 0 0 15px rgba(0,255,255,0.4); 
+            top: 60%;
+            transform: translate(-50%, -50%);
+            left: 50%;
+        }
+
+        /* Responsive adjustments for layered text */
+        @media (min-width: 768px) {
+            .hero-text-back, .hero-text-front {
+                font-size: 8rem;
+            }
+        }
+        @media (min-width: 1024px) {
+            .hero-text-back, .hero-text-front {
+                font-size: 10rem;
+            }
+        }
+        
+        /* Scrolling banner animation wrapper */
+        .scrolling-wrapper {
+            overflow: hidden;
+            white-space: nowrap;
+            display: flex;
+            gap: 2rem;
+            padding: 1rem 0;
+        }
+
+        /* Scroll Left to Right */
+        .scroll-left-to-right {
+            animation: scrollLtoR 18s linear infinite; 
+        }
+
+        /* Scroll Right to Left */
+        .scroll-right-to-left {
+            animation: scrollRtoL 18s linear infinite reverse; 
+        }
+
+        /* Keyframes for Left to Right scrolling */
+        @keyframes scrollLtoR {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* Keyframes for Right to Left scrolling */
+        @keyframes scrollRtoL {
+            from { transform: translateX(-50%); }
+            to { transform: translateX(0); }
+        }
+
+        /* Pause animation on hover */
+        .scrolling-wrapper:hover .scroll-left-to-right,
+        .scrolling-wrapper:hover .scroll-right-to-left {
+            animation-play-state: paused;
+        }
+
+        /* Skill Text Style */
+        .skill-item {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            margin-right: 2rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.5); 
+            color: #fff;
+            transition: all 0.3s;
+        }
+        .skill-item:hover {
+            background-color: rgba(0, 255, 255, 0.1);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        /* Project Card Styles */
+        .project-card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            transition: transform 0.3s, box-shadow 0.3s;
+            /* Added min-height to balance cards in the grid */
+            min-height: 250px; 
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.15);
+            border-color: #00ffff;
+        }
+
+        /* --- New Styles for Scrolling Effects and Background Layers --- */
+
+        /* Scroll Reveal styles */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .scroll-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Background Text Layering */
+        .section-background-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.03); /* Extremely subtle cyan */
+            white-space: nowrap;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Background Image Layering (Placeholder for "Cartoon Character") */
+        .section-background-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            max-width: 400px;
+            height: auto;
+            opacity: 0.05; /* Very subtle */
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .section-background-text {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Three.js 3D Canvas -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Main Content Container -->
+    <div id="content" class="relative z-10 min-h-screen text-white p-4 md:p-10 lg:p-16">
+        
+        <!-- Hero Section -->
+        <header class="text-center py-16 md:py-24 lg:py-32 mb-32">
+            <div class="hero-image-container mb-8 md:mb-12">
+                <!-- Text Behind Image -->
+                <h1 class="hero-text-back">ALOMGIR</h1>
+                
+                <!-- Profile Image & Circle Wrapper -->
+                <div class="profile-wrapper">
+                    <!-- Your Uploaded Image Here -->
+                    <img src="alomgirhossen_1760265407_829.jpg" alt="ALOMGIR HOSSEN">
+                </div>
+                
+                <!-- Text In Front of Image -->
+                <h1 class="hero-text-front">ALOMGIR</h1>
+            </div>
+
+            <!-- Profession Text Below Image -->
+            <p class="text-xl md:text-3xl font-light text-gray-200 uppercase tracking-widest relative z-20 mt-4 md:mt-8 scroll-reveal">
+                FrontEnd Developer
+            </p>
+            <a href="#contact" class="mt-8 inline-block px-8 py-3 text-lg font-medium text-black bg-cyan-400 rounded-full shadow-lg transition duration-300 hover:bg-cyan-300 hover:shadow-xl relative z-20 scroll-reveal">
+                Contact Me
+            </a>
+        </header>
+
+        <!-- Skill Banner Section (Left to Right) -->
+        <section class="mb-32 scroll-reveal">
+            <h2 class="text-3xl font-bold mb-4 text-center text-gray-100">Core Technologies</h2>
+            <div class="scrolling-wrapper bg-gray-900 bg-opacity-70 backdrop-blur-sm rounded-xl border border-gray-700">
+                <div class="scroll-left-to-right flex" style="width: 200%;">
+                    <!-- First Set -->
+                    <div class="flex gap-8 items-center" style="width: 50%;">
+                        <div class="skill-item text-white">React.js</div>
+                        <div class="skill-item text-white">Next.js</div>
+                        <div class="skill-item text-white">TypeScript</div>
+                        <div class="skill-item text-white">Tailwind CSS</div>
+                        <div class="skill-item text-white">Three.js</div>
+                        <div class="skill-item text-white">R3F (Fiber)</div>
+                        <div class="skill-item text-white">Redux Toolkit</div>
+                        <div class="skill-item text-white">Zustand</div>
+                    </div>
+                    <!-- Duplicate Set for looping -->
+                    <div class="flex gap-8 items-center" style="width: 50%;">
+                        <div class="skill-item text-white">React.js</div>
+                        <div class="skill-item text-white">Next.js</div>
+                        <div class="skill-item text-white">TypeScript</div>
+                        <div class="skill-item text-white">Tailwind CSS</div>
+                        <div class="skill-item text-white">Three.js</div>
+                        <div class="skill-item text-white">R3F (Fiber)</div>
+                        <div class="skill-item text-white">Redux Toolkit</div>
+                        <div class="skill-item text-white">Zustand</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skill Banner Section (Right to Left) -->
+        <section class="mb-32 scroll-reveal">
+            <div class="scrolling-wrapper bg-gray-900 bg-opacity-70 backdrop-blur-sm rounded-xl border border-gray-700">
+                <div class="scroll-right-to-left flex" style="width: 200%;">
+                    <!-- First Set -->
+                    <div class="flex gap-8 items-center" style="width: 50%;">
+                        <div class="skill-item text-white">Vercel Deployment</div>
+                        <div class="skill-item text-white">Astro.js</div>
+                        <div class="skill-item text-white">REST APIs</div>
+                        <div class="skill-item text-white">GraphQL (Apollo)</div>
+                        <div class="skill-item text-white">Git & GitHub</div>
+                        <div class="skill-item text-white">Sass/Less</div>
+                        <div class="skill-item text-white">Web Performance</div>
+                        <div class="skill-item text-white">PWA Development</div>
+                    </div>
+                    <!-- Duplicate Set for looping -->
+                    <div class="flex gap-8 items-center" style="width: 50%;">
+                        <div class="skill-item text-white">Vercel Deployment</div>
+                        <div class="skill-item text-white">Astro.js</div>
+                        <div class="skill-item text-white">REST APIs</div>
+                        <div class="skill-item text-white">GraphQL (Apollo)</div>
+                        <div class="skill-item text-white">Git & GitHub</div>
+                        <div class="skill-item text-white">Sass/Less</div>
+                        <div class="skill-item text-white">Web Performance</div>
+                        <div class="skill-item text-white">PWA Development</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Showcase Section -->
+        <section id="projects" class="max-w-6xl mx-auto mb-32 p-4 relative">
+            <!-- Background Text Layer -->
+            <h2 class="section-background-text">Creations</h2> 
+
+            <h2 class="text-4xl font-bold mb-10 text-center text-cyan-400 relative z-10 scroll-reveal">Featured Projects</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+                
+                <!-- Project Card 1: Midnight Soul (Dark UI Portfolio) -->
+                <div class="project-card rounded-xl p-6 shadow-xl flex flex-col justify-between scroll-reveal">
+                    <div>
+                        <i data-lucide="user" class="w-10 h-10 text-teal-400 mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-2 text-white block">Midnight Soul: Dark UI Portfolio</h3>
+                        <p class="text-gray-400 mb-4 block">A minimalist, dark-themed developer portfolio showcasing modern design trends and performance optimization.</p>
+                        <p class="text-sm font-medium text-gray-500 mb-4 block">Tech: Next.js, Tailwind CSS, Vercel.</p>
+                    </div>
+                    <div class="flex space-x-3 mt-4">
+                        <a href="https://midnight-soul.vercel.app/" target="_blank" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-full transition duration-300">Live Preview</a>
+                        <button onclick="showProjectDetails('Midnight Soul Portfolio')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-full transition duration-300">Details</button>
+                    </div>
+                </div>
+                
+                <!-- Project Card 2: Acme House (Real Estate) -->
+                <div class="project-card rounded-xl p-6 shadow-xl flex flex-col justify-between scroll-reveal" style="transition-delay: 0.1s;">
+                    <div>
+                        <i data-lucide="home" class="w-10 h-10 text-teal-400 mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-2 text-white block">Acme House: Real Estate Listing Platform</h3>
+                        <p class="text-gray-400 mb-4 block">A responsive platform for property listings with advanced filtering and map integration.</p>
+                        <p class="text-sm font-medium text-gray-500 mb-4 block">Tech: Next.js, TypeScript, Mapbox GL JS.</p>
+                    </div>
+                    <div class="flex space-x-3 mt-4">
+                        <a href="https://acmehouse.vercel.app/" target="_blank" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-full transition duration-300">Live Preview</a>
+                        <button onclick="showProjectDetails('Acme House Real Estate')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-full transition duration-300">Details</button>
+                    </div>
+                </div>
+                
+                <!-- Project Card 3: Gleam & Grace (Beauty E-commerce) -->
+                <div class="project-card rounded-xl p-6 shadow-xl flex flex-col justify-between scroll-reveal" style="transition-delay: 0.2s;">
+                    <div>
+                        <i data-lucide="gem" class="w-10 h-10 text-teal-400 mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-2 text-white block">Gleam & Grace: Beauty E-commerce</h3>
+                        <p class="text-gray-400 mb-4 block">A luxurious e-commerce storefront for beauty products with smooth animations and robust cart functionality.</p>
+                        <p class="text-sm font-medium text-gray-500 mb-4 block">Tech: Next.js, Redux, Stripe, Framer Motion.</p>
+                    </div>
+                    <div class="flex space-x-3 mt-4">
+                        <a href="https://gleamandgrace.vercel.app/" target="_blank" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-full transition duration-300">Live Preview</a>
+                        <button onclick="showProjectDetails('Gleam & Grace E-commerce')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-full transition duration-300">Details</button>
+                    </div>
+                </div>
+
+                <!-- Project Card 4: Gandaria (SaaS Landing Page) -->
+                <div class="project-card rounded-xl p-6 shadow-xl flex flex-col justify-between scroll-reveal">
+                    <div>
+                        <i data-lucide="rocket" class="w-10 h-10 text-teal-400 mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-2 text-white block">Gandaria: SaaS Landing Page</h3>
+                        <p class="text-gray-400 mb-4 block">A high-conversion landing page designed for showcasing a SaaS product with compelling design elements and testimonials.</p>
+                        <p class="text-sm font-medium text-gray-500 mb-4 block">Tech: Astro.js, React, Tailwind CSS.</p>
+                    </div>
+                    <div class="flex space-x-3 mt-4">
+                        <a href="https://gandaria.vercel.app/" target="_blank" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-full transition duration-300">Live Preview</a>
+                        <button onclick="showProjectDetails('Gandaria Landing Page')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-full transition duration-300">Details</button>
+                    </div>
+                </div>
+
+                <!-- Project Card 5: StoreCoza (Fashion Retail Store) -->
+                <div class="project-card rounded-xl p-6 shadow-xl flex flex-col justify-between scroll-reveal" style="transition-delay: 0.1s;">
+                    <div>
+                        <i data-lucide="t-shirt" class="w-10 h-10 text-teal-400 mb-4"></i>
+                        <h3 class="text-2xl font-semibold mb-2 text-white block">StoreCoza: Fashion Retail Store</h3>
+                        <p class="text-gray-400 mb-4 block">A modern online fashion store focusing on excellent user experience, quick loading, and secure checkout flow.</p>
+                        <p class="text-sm font-medium text-gray-500 mb-4 block">Tech: Next.js, Zustand, Prisma, Vercel.</p>
+                    </div>
+                    <div class="flex space-x-3 mt-4">
+                        <a href="https://storecoza.vercel.app/" target="_blank" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-full transition duration-300">Live Preview</a>
+                        <button onclick="showProjectDetails('StoreCoza Retail Store')" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-full transition duration-300">Details</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- New Section: Professional Experience -->
+        <section id="experience" class="max-w-4xl mx-auto mb-32 p-8 bg-gray-900 bg-opacity-70 backdrop-blur-md rounded-xl shadow-2xl relative scroll-reveal">
+            <h2 class="text-4xl font-bold mb-8 text-teal-400 text-center">Professional Experience</h2>
+            
+            <!-- Job 1 -->
+            <div class="border-l-4 border-cyan-400 pl-6 py-4 mb-6">
+                <h3 class="text-3xl font-semibold text-white">Senior FrontEnd Developer</h3>
+                <p class="text-cyan-400 text-lg mb-2">Tech Solutions Inc. | 2022 - Present</p>
+                <p class="text-gray-300 leading-relaxed">Led the migration of a legacy system to a modern Next.js architecture, resulting in a 40% improvement in page load speed and a significant boost in SEO performance.</p>
+            </div>
+
+            <!-- Job 2 -->
+            <div class="border-l-4 border-cyan-400 pl-6 py-4 mb-6">
+                <h3 class="text-3xl font-semibold text-white">React Developer</h3>
+                <p class="text-cyan-400 text-lg mb-2">Creative Web Agency | 2019 - 2022</p>
+                <p class="text-gray-300 leading-relaxed">Developed and maintained over 15 client-facing applications using React and Styled Components, focusing on responsive design and cross-browser compatibility.</p>
+            </div>
+        </section>
+
+
+        <!-- About/Details Section -->
+        <section id="about" class="max-w-4xl mx-auto mb-32 p-8 bg-gray-800 bg-opacity-70 backdrop-blur-md rounded-xl shadow-2xl relative scroll-reveal">
+            <!-- Background Character Image Layer -->
+            <!-- Note: Using a placeholder image for the cartoon character layer, as no specific image was provided. -->
+            <img src="https://placehold.co/400x400/1f2937/00ffff?text=Character+Sketch" alt="Background Character Sketch" class="section-background-image">
+            
+            <h2 class="text-4xl font-bold mb-6 text-cyan-400 relative z-20">About Me</h2>
+            <p class="text-gray-300 mb-6 leading-relaxed relative z-20">
+                I am Alomgir Hossen, a passionate FrontEnd Developer specializing in high-performance, responsive web applications. My expertise centers around the **React Ecosystem** for scalable UIs and **Next.js** for full-stack server-side rendering and static generation. I combine modern practices with libraries like **Three.js** to craft engaging, interactive 3D web experiences, focusing on performance optimization and clean, reusable code architecture.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-200 relative z-20">
+                <div>
+                    <h3 class="text-2xl font-semibold mb-3 text-teal-400">Development Focus</h3>
+                    <ul class="space-y-2">
+                        <li><span class="font-medium text-gray-400">Primary Stack:</span> React, Next.js, TypeScript</li>
+                        <li><span class="font-medium text-gray-400">UI/Styling:</span> Tailwind CSS, CSS-in-JS (e.g., Styled Components)</li>
+                        <li><span class="font-medium text-gray-400">State Management:</span> Redux Toolkit, Zustand, React Context</li>
+                        <li><span class="font-medium text-gray-400">Interactive Design:</span> Three.js, R3F (React Three Fiber) principles</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-semibold mb-3 text-teal-400">Personal Details</h3>
+                    <ul class="space-y-2">
+                        <li><span class="font-medium text-gray-400">Full Name:</span> ALOMGIR HOSSEN</li>
+                        <li><span class="font-medium text-gray-400">Role:</span> FrontEnd Developer</li>
+                        <li><span class="font-medium text-gray-400">Location:</span> Dhaka, Bangladesh</li>
+                        <li><span class="font-medium text-gray-400">Email:</span> your.email@example.com (Please update this)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <!-- New Section: Thoughts & Blog (Placeholder) -->
+        <section id="blog" class="max-w-6xl mx-auto mb-32 p-4 scroll-reveal">
+            <h2 class="text-4xl font-bold mb-10 text-center text-cyan-400">My Latest Thoughts & Blog</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Blog Post 1 -->
+                <div class="bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-700 hover:border-teal-400 transition duration-300">
+                    <p class="text-sm text-gray-500 mb-2">Nov 15, 2025</p>
+                    <h3 class="text-xl font-semibold text-white mb-3">Mastering State with Zustand vs Redux</h3>
+                    <p class="text-gray-400">A deep dive into lightweight state management for performance-critical React applications.</p>
+                    <a href="#" class="mt-4 inline-block text-teal-400 hover:text-teal-300 font-medium">Read Article →</a>
+                </div>
+                <!-- Blog Post 2 -->
+                <div class="bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-700 hover:border-teal-400 transition duration-300" style="transition-delay: 0.1s;">
+                    <p class="text-sm text-gray-500 mb-2">Oct 28, 2025</p>
+                    <h3 class="text-xl font-semibold text-white mb-3">Building a PWA with Next.js 14</h3>
+                    <p class="text-gray-400">A step-by-step guide to turning your Next.js app into a Progressive Web Application.</p>
+                    <a href="#" class="mt-4 inline-block text-teal-400 hover:text-teal-300 font-medium">Read Article →</a>
+                </div>
+                <!-- Blog Post 3 -->
+                <div class="bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-700 hover:border-teal-400 transition duration-300" style="transition-delay: 0.2s;">
+                    <p class="text-sm text-gray-500 mb-2">Sep 01, 2025</p>
+                    <h3 class="text-xl font-semibold text-white mb-3">The Power of Custom GLSL Shaders in Three.js</h3>
+                    <p class="text-gray-400">Exploring custom vertex and fragment shaders for unique visual effects on the web.</p>
+                    <a href="#" class="mt-4 inline-block text-teal-400 hover:text-teal-300 font-medium">Read Article →</a>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12 scroll-reveal" style="transition-delay: 0.3s;">
+                <a href="#" class="inline-block px-8 py-3 text-lg font-medium text-black bg-teal-400 rounded-full shadow-lg transition duration-300 hover:bg-teal-300">
+                    View All Posts
+                </a>
+            </div>
+        </section>
+
+
+        <!-- Footer / Contact Section -->
+        <footer id="contact" class="max-w-4xl mx-auto text-center pt-10 pb-4 text-gray-400 scroll-reveal">
+            <h2 class="text-3xl font-bold mb-4 text-cyan-400">Get in Touch</h2>
+            <p class="mb-4">
+                Ready to start a project? Feel free to reach out via email or connect with me on LinkedIn.
+            </p>
+            <div class="flex justify-center space-x-6 text-lg">
+                <a href="mailto:your.email@example.com" class="text-gray-300 hover:text-cyan-400 transition duration-300">Email</a>
+                <a href="#" class="text-gray-300 hover:text-cyan-400 transition duration-300">LinkedIn</a>
+                <a href="#" class="text-gray-300 hover:text-cyan-400 transition duration-300">GitHub</a>
+            </div>
+            <p class="mt-8 text-sm">&copy; 2025 ALOMGIR HOSSEN. All Rights Reserved.</p>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript for Three.js 3D Background, Interaction, and Scroll Reveal -->
+    <script>
+        // Three.js Setup (Comments translated to English)
+        let scene, camera, renderer, object;
+        let mouseX = 0, mouseY = 0;
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        function init() {
+            const canvas = document.getElementById('three-canvas');
+
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 5); // Soft white light
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+            directionalLight.position.set(5, 5, 5).normalize();
+            scene.add(directionalLight);
+
+            // 3D Object (Abstract Dodecahedron)
+            const geometry = new THREE.DodecahedronGeometry(1.5, 0); // 12-sided polyhedron
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ffff, // Cyan color
+                emissive: 0x004444,
+                specular: 0x111111,
+                shininess: 30,
+                wireframe: true, // Wireframe effect
+                transparent: true,
+                opacity: 0.8
+            });
+
+            object = new THREE.Mesh(geometry, material);
+            scene.add(object);
+            
+            // Event listener setup
+            document.addEventListener('mousemove', onDocumentMouseMove);
+            
+            // --- NEW: Touch Event Listeners for mobile responsiveness ---
+            document.addEventListener('touchstart', onDocumentTouchStart);
+            document.addEventListener('touchmove', onDocumentTouchMove);
+
+            window.addEventListener('resize', onWindowResize);
+            
+            // Initialize Lucide Icons
+            lucide.createIcons(); 
+            
+            // Scroll Reveal setup
+            setupScrollReveal();
+        }
+
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Unified function to update mouseX and mouseY based on screen coordinates
+        function updateMouseCoords(clientX, clientY) {
+            mouseX = (clientX - windowHalfX) * 0.05; // Mouse movement sensitivity
+            mouseY = (clientY - windowHalfY) * 0.05;
+        }
+
+        function onDocumentMouseMove(event) {
+            updateMouseCoords(event.clientX, event.clientY);
+        }
+        
+        function onDocumentTouchStart(event) {
+            if (event.touches.length > 0) {
+                // Treat the first touch point as the input
+                updateMouseCoords(event.touches[0].clientX, event.touches[0].clientY);
+            }
+        }
+
+        function onDocumentTouchMove(event) {
+            if (event.touches.length > 0) {
+                event.preventDefault(); // Prevent scrolling while touching the 3D background area
+                updateMouseCoords(event.touches[0].clientX, event.touches[0].clientY);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const timer = 0.0001 * Date.now();
+            
+            // Object Rotation
+            object.rotation.x += 0.01; 
+            object.rotation.y += 0.015; 
+            
+            // Camera position update (Mouse/Touch interaction)
+            // Camera position slowly moves toward the mouse/touch position
+            camera.position.x += (mouseX - camera.position.x) * .05;
+            camera.position.y += (-mouseY - camera.position.y) * .05;
+
+            // Subtle object movement
+            object.position.y = Math.sin(timer * 4) * 0.15; 
+            object.position.x = Math.cos(timer * 3) * 0.15; 
+
+
+            camera.lookAt(scene.position); 
+
+            renderer.render(scene, camera);
+        }
+        
+        // Function to handle project details click (modal replacement)
+        function showProjectDetails(projectName) {
+            console.log(`DETAILS requested for Project: ${projectName}.`);
+            
+            // Since we can't use alert() or a complex modal, we show a friendly message on screen
+            const messageElement = document.createElement('div');
+            messageElement.className = 'fixed top-5 right-5 z-50 p-4 bg-teal-600 text-white rounded-lg shadow-xl transition-opacity duration-500 opacity-100';
+            messageElement.textContent = `Details for "${projectName}" are currently available in the console (F12).`;
+            document.body.appendChild(messageElement);
+            
+            setTimeout(() => {
+                messageElement.style.opacity = '0';
+                messageElement.addEventListener('transitionend', () => messageElement.remove());
+            }, 3000);
+        }
+        
+        // Function for Scroll Reveal Effect using Intersection Observer
+        function setupScrollReveal() {
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target); // Stop observing once visible
+                    }
+                });
+            }, {
+                rootMargin: '0px',
+                threshold: 0.1 // Start showing when 10% of the item is visible
+            });
+
+            document.querySelectorAll('.scroll-reveal').forEach(element => {
+                observer.observe(element);
+            });
+        }
+
+        // Start on DOM load
+        window.onload = function() {
+            init();
+            animate();
+        };
+
+    </script>
+</body>
+</html>
